@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing lemminx..."
+
+namespace="vineflower"
+url="https://github.com/Vineflower/vineflower/releases/download/1.12.0/vineflower-1.12.0.jar"
+
+install-tool -n "$namespace" -i curl -p "$url" -p "vineflower.jar"
+
+if [ "$?" -ne 0 ]; then
+    exit 1
+fi
+
+cat <<-EOF | tool-bin vineflower
+#!/usr/bin/env bash
+java -jar "$tools_dir/$namespace/vineflower.jar" "\$@"
+EOF

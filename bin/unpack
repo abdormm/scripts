@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# used to unzip, untar,... etc
+# does not error if no need to unpack
+
+source "$scripts_dir/lib/log.sh"
+
+if [ "$#" -eq 1 ]; then
+    filename="$1"
+else
+    echo-error "no filename was given"
+    exit 1
+fi
+
+if ! [ -f "$filename" ]; then
+    echo-error "'$filename' does not exist"
+    exit 1
+fi
+
+case "$filename" in
+    *.zip)
+        unzip "$filename"
+        exitcode=$?
+        ;;
+    *.tar.gz|*.tgz)
+        tar -xzf "$filename"
+        exitcode=$?
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+if [ "$exitcode" -ne 0 ]; then
+    echo-error "unpacking failed with code $exitcode"
+    exit 1
+else
+    echo-info "unpacking succeeded"
+    rm "$filename" || echo-warn "removing '$filename' failed"
+fi
+
+exit 0

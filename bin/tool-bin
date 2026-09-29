@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# used to create scripts in $tool_dir/bin
+
+source "$scripts_dir/lib/log.sh"
+
+if [ -z "$tools_dir" ]; then
+    echo-error "tools dir is not set or is empty"
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo-error "no filename was given"
+    exit 1
+fi
+
+if ! mkdir -p "$tools_dir/bin"; then
+    echo-error "creating '$tools_dir/bin' failed"
+    exit 1
+fi
+
+filename="$tools_dir/bin/$1"
+
+if ! cat > "$filename"; then
+    echo-error "creating '$filename' failed"
+    exit 1
+else
+    echo-info "creating '$filename' succeeded"
+fi
+
+if ! chmod +x "$filename"; then
+    echo-error "making '$filename' executable failed"
+    exit 1
+else
+    echo-info "making '$filename' executable succeeded"
+fi
+
+echo-info "tool-bin succeeded"

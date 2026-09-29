@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing vtsls..."
+
+install-tool -n "vtsls" -i npm \
+    -p "@vtsls/language-server" \
+    -b vtsls

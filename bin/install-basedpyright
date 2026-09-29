@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing basedpyright..."
+
+install-tool -n basedpyright -i pip -p basedpyright -b basedpyright-langserver

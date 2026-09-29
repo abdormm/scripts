@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing lemminx..."
+
+latest="lemminx-maven-0.12.1-20260529.112035-23-vscode-uber-jars.zip"
+version="0.12.1-SNAPSHOT"
+url="https://repo.eclipse.org/repository/lemminx-maven2/org/eclipse/lemminx/lemminx-maven/$version/$latest"
+namespace="lemminx"
+
+install-tool -n "$namespace" -i curl -p "$url"
+
+if [ "$?" -ne 0 ]; then
+    exit 1
+fi
+
+cat <<-EOF | tool-bin lemminx
+#!/usr/bin/env bash
+java -cp "$tools_dir/$namespace/*" org.eclipse.lemminx.XMLServerLauncher 
+EOF

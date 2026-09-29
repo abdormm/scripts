@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing vscode extracted langservers..."
+
+install-tool -n "vscodelsps" -i npm \
+    -p "vscode-langservers-extracted" \
+    -b "vscode-html-language-server" \
+    -b "vscode-json-language-server" \
+    -b "vscode-eslint-language-server" \
+    -b "vscode-css-language-server"

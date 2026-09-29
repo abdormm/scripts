@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing jdtls..."
+
+latest=$(curl -L#o - "https://download.eclipse.org/jdtls/snapshots/latest.txt")
+
+if [ "$?" -ne 0 ]; then
+    echo-error "fetching the latest version failed"
+    exit 1
+else
+    echo-info "the latest version is $latest"
+fi
+
+url="https://download.eclipse.org/jdtls/snapshots/$latest"
+install-tool -n jdtls -i curl -p "$url" -b bin/jdtls

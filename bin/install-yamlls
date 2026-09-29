@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/log.sh"
+
+echo-info "installing yaml-language-server..."
+
+install-tool -n "yaml-language-server" -i npm \
+    -p "yaml-language-server" \
+    -b "yaml-language-server"

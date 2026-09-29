@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+source "$scripts_dir/lib/check.sh"
+source "$scripts_dir/lib/log.sh"
+source "$scripts_dir/lib/help.sh"
+
+echo-debug args count: "$#"
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        *)
+            echo-debug "processing arg: '$1'"
+            ;;&
+        -n|--namespace)
+            shift; namespace="$1";
+            if [ -z "$namespace" ]; then
+                echo-error "no namespace was given"; exit 1;
+            fi
+            shift
+            ;;
+        -i|--installer)
+            shift; installer="$1";
+            if [ -z "$installer" ]; then
+                echo-error "no installer was given"; exit 1;
+            fi
+            shift
+            ;;
+        -p|--param)
+            shift; installer_params+=("$1");
+            shift
+            ;;
+        -b|--bin)
+            shift; bins+=("$1");
+            shift
+            ;;
+        -s|--skip-staging)
+            shift; skip_staging=1;
+            ;;
+        -h|--help)
+            echo-help; exit 0;
+            ;;
+        *)
+            echo-error "bad argument: '$1' see -h or --help"
+            exit 1
+            ;;
+    esac
+done
+
+echo-debug "namespace: $namespace"
+echo-debug "installer: $installer"
+echo-debug "bin: ${bins[@]}"
+
+if [ -z "$tools_dir" ]; then
+    echo-error "tools_dir is empty or unset"
+    exit 1
+fi
+
+installer_path="$scripts_dir/lib/installers/$installer.sh"
+
+if ! [ -f "$installer_path" ]; then
+    echo-error "installer is not defined."
+    echo-error "installers must be put in $scripts_dir/lib/installers/"
+    exit 1
+fi
+
+if ! source "$installer_path"; then
+    echo-error "sourcing the installer failed"
+    exit 1
+else
+    echo-info "sourcing the installer succeeded"
+fi
+
+if ! is-installer-valid; then
+    echo-error "selected installer does not define all the needed functions"
+    exit 1
+else
+    echo-debug "active installer: $(installer-get-name)"
+fi
+
+if ! [ "$(installer-get-name)" = "$installer" ]; then
+    echo-error "wrong installer is active"
+    exit 1
+fi
+
+final_dir="$tools_dir/$namespace"
+staging_dir="$tools_dir/.staging-$namespace"
+lock_dir="$tools_dir/.lock-$namespace"
+
+if ! mkdir -p "$tools_dir"; then
+    echo-error "creating '$tools_dir' failed"
+    exit 1
+fi
+
+if ! mkdir "$lock_dir" 2> /dev/null; then
+    echo-error "another instance is running"
+    exit 1
+fi
+
+clean() {
+    [ -z "$skip_staging" ] && rm -rf "$staging_dir"
+    rmdir "$lock_dir" 2> /dev/null
+}
+
+trap 'clean' EXIT
+
+if [ -z "$skip_staging" ]; then
+    if ! mkdir "$staging_dir"; then
+        echo-error "creating '$staging_dir' failed"
+        exit 1
+    fi
+    cd "$staging_dir"
+else
+    if ! rm -rf "$final_dir"; then
+        echo-error "removing old package failed"
+        exit 1
+    else
+        echo-info "removing old package succeeded"
+    fi
+    if ! mkdir "$final_dir"; then
+        echo-error "creating '$final_dir' failed"
+        exit 1
+    fi
+    cd "$final_dir"
+fi
+
+if ! installer-install-package "${installer_params[@]}"; then
+    echo-error "installation failed"
+    exit 1
+fi
+
+echo-info "installation succeeded"
+
+if [ -z "$skip_staging" ]; then
+    if ! rm -rf "$final_dir"; then
+        echo-error "removing old package failed"
+        exit 1
+    else
+        echo-info "removing old package succeeded"
+    fi
+
+    if ! mv "$staging_dir" "$final_dir"; then
+        echo-error "moving staging into final failed"
+        exit 1
+    else
+        echo-info "moving staging into final succeeded"
+    fi
+fi
+
+for bin in "${bins[@]}"; do
+    echo-info "creating $bin..."
+    bin_filename=$(basename "$bin")
+    bin_path=$(installer-get-bin "$bin")
+    if [ "$?" -eq 0 ]; then
+        # note for the Here here-document we use tab for indentation instead of
+        # spaces so make sure that your tabstop is 4
+		cat <<-EOF | tool-bin "$bin_filename"
+		#!/usr/bin/env bash
+		"$final_dir/$bin_path" "\$@"
+		EOF
+    else
+        echo-warn "creating $bin failed"
+    fi
+done
