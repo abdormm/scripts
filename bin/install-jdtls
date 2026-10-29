@@ -2,6 +2,18 @@
 
 source "$scripts_dir/lib/log.sh"
 
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        *)
+            echo-debug "processing arg: '$1'"
+            ;;&
+        lombok)
+            shift;
+            install_lombok=1
+            ;;
+    esac
+done
+
 echo-info "installing jdtls..."
 
 latest=$(curl -L#o - "https://download.eclipse.org/jdtls/snapshots/latest.txt")
@@ -14,4 +26,27 @@ else
 fi
 
 url="https://download.eclipse.org/jdtls/snapshots/$latest"
-install-tool -n jdtls -i curl -p "$url" -b bin/jdtls
+install-tool -n jdtls -i curl -p "$url" -b "bin/jdtls"
+if [ "$?" -ne 0 ]; then
+    echo-error "installing jdtls failed"
+    exit 1
+else
+    echo-info "installing jdtls succeed"
+fi
+
+if [ "$install_lombok" = "1" ]; then
+    echo-info "installing lombok..."
+    lombok_url="https://projectlombok.org/downloads/lombok.jar"
+    install-tool -n lombok -i curl -p "$lombok_url"
+    if [ "$?" -ne 0 ]; then
+        echo-warn "installing lombok failed"
+        exit 0
+    else
+        echo-info "installing lombok succeed"
+    fi
+
+    cat <<-EOF | tool-bin "jdtls"
+	#!/usr/bin/env bash
+	"$tools_dir/jdtls/bin/jdtls" "--jvm-arg=-javaagent:$tools_dir/lombok/lombok.jar" "\$@"
+	EOF
+fi
